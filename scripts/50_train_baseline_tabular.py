@@ -128,7 +128,7 @@ def main():
     models_config = {
         'logistic': LogisticRegression(max_iter=1000, random_state=RANDOM_SEED),
         'random_forest': RandomForestClassifier(n_estimators=100, random_state=RANDOM_SEED, n_jobs=-1),
-        'mlp': MLPClassifier(hidden_layers=(64, 32), max_iter=500, random_state=RANDOM_SEED),
+        'mlp': MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=500, random_state=RANDOM_SEED),
     }
 
     all_results = {}
@@ -165,10 +165,26 @@ def main():
                 # Prepare data
                 X, y, label_encoder = prepare_features(df, feature_cols)
 
-                # Get split indices
-                train_idx = split['train']
-                val_idx = split['val']
-                test_idx = split['test']
+                # Check if we have only one class
+                if len(label_encoder.classes_) == 1:
+                    print(f"  ⚠ Warning: Only one class found: '{label_encoder.classes_[0]}'")
+                    print(f"  Cannot train classifiers with single class. Skipping...")
+                    continue
+
+                # Get split indices - map geometry_id to dataframe index
+                # The split contains geometry_ids, but we need to map them to df indices
+                geometry_to_idx = {geom_id: idx for idx, geom_id in enumerate(df['geometry_id'].values)}
+
+                train_idx = [geometry_to_idx[gid] for gid in split['train'] if gid in geometry_to_idx]
+                val_idx = [geometry_to_idx[gid] for gid in split['val'] if gid in geometry_to_idx]
+                test_idx = [geometry_to_idx[gid] for gid in split['test'] if gid in geometry_to_idx]
+
+                # Check if we have enough samples after filtering
+                if len(train_idx) == 0 or len(val_idx) == 0 or len(test_idx) == 0:
+                    print(f"  ⚠ Warning: Not enough labeled samples in split")
+                    print(f"     Train: {len(train_idx)}, Val: {len(val_idx)}, Test: {len(test_idx)}")
+                    print(f"  Skipping...")
+                    continue
 
                 X_train, y_train = X[train_idx], y[train_idx]
                 X_val, y_val = X[val_idx], y[val_idx]

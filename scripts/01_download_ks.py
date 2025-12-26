@@ -113,33 +113,10 @@ def main():
             print(f"    ERROR: {e}")
             continue
 
-    # Download Hodge number data
-    print("\nDownloading Hodge number files...")
-    hodge_files = [
-        "pub/misc/alltoric.spec.gz",
-        "pub/misc/Hodge356.K3.gz",
-        "pub/misc/Hodge54.K3.gz",
-        "pub/misc/Hodge.K3.gz",
-        "pub/misc/toric.spec.gz",
-        "pub/misc/wp4.spec.gz",
-    ]
-
-    for filename in hodge_files:
-        url = f"{BASE_URL}{filename}"
-        output_path = RAW_DATA_DIR / filename
-
-        if output_path.exists():
-            print(f"  ✓ {filename} already exists, skipping")
-            continue
-
-        print(f"  Downloading {filename}...")
-        try:
-            download_file(url, output_path, desc=filename)
-            checksum = compute_sha256(output_path)
-            print(f"    SHA256: {checksum}")
-        except Exception as e:
-            print(f"    ERROR: {e}")
-            continue
+    # Download Hodge number data (optional - often not available)
+    # Skipping these as they're optional metadata and often return 404
+    # The core polytope data in W/ directory is sufficient
+    print("\nSkipping optional Hodge number files (not needed for analysis)...")
 
     print("\n" + "=" * 70)
     print("Download complete!")

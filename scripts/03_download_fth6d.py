@@ -116,16 +116,9 @@ def main():
         print("    1. Download from arXiv:1201.1943 ancillary files")
         print("    2. Or extract from the source archives")
 
-    # Extract source archives if present
-    for archive_name in ["1201.1943_src.tar.gz", "1204.0283_src.tar.gz"]:
-        archive_path = RAW_DATA_DIR / archive_name
-        if archive_path.exists():
-            extract_dir = RAW_DATA_DIR / archive_name.replace("_src.tar.gz", "_extracted")
-            if not extract_dir.exists():
-                try:
-                    extract_tarfile(archive_path, extract_dir)
-                except Exception as e:
-                    print(f"  ERROR extracting {archive_name}: {e}")
+    # Skip extracting source archives - they contain LaTeX paper source (not data)
+    # The actual scientific data (toric-bases.m) is already present above
+    print("  Skipping paper source extraction (not needed - data file present)")
 
     print("\n" + "=" * 70)
     print("Download complete!")

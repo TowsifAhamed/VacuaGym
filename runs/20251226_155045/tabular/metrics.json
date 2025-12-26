@@ -1,0 +1,248 @@
+{
+  "ks_iid_split.json_logistic": {
+    "train": {
+      "accuracy": 0.9985915492957746,
+      "f1_macro": 0.9969483235120928
+    },
+    "val": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "test": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0,
+      "classification_report": {
+        "marginal": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 20.0
+        },
+        "stable": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 123.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        }
+      }
+    }
+  },
+  "ks_iid_split.json_random_forest": {
+    "train": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "val": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "test": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0,
+      "classification_report": {
+        "marginal": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 20.0
+        },
+        "stable": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 123.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        }
+      }
+    }
+  },
+  "ks_iid_split.json_mlp": {
+    "train": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "val": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "test": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0,
+      "classification_report": {
+        "marginal": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 20.0
+        },
+        "stable": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 123.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        }
+      }
+    }
+  },
+  "cicy3_iid_split.json_logistic": {
+    "train": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "val": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "test": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0,
+      "classification_report": {
+        "failed": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 2.0
+        },
+        "stable": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 141.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        }
+      }
+    }
+  },
+  "cicy3_iid_split.json_random_forest": {
+    "train": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "val": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "test": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0,
+      "classification_report": {
+        "failed": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 2.0
+        },
+        "stable": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 141.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        }
+      }
+    }
+  },
+  "cicy3_iid_split.json_mlp": {
+    "train": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "val": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "test": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0,
+      "classification_report": {
+        "failed": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 2.0
+        },
+        "stable": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 141.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 143.0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,126 @@
+%!PS-Adobe-2.0 EPSF-2.0
+%%BoundingBox:  186 476 426 686
+%%EndComments
+
+
+
+% arrow macro length angle position 
+/arrow {
+  /m2 matrix currentmatrix def
+  translate rotate
+  0 0 moveto
+  dup 0 lineto
+  stroke
+  0 translate
+  -5 5 moveto
+  0 0 lineto
+  -5 -5 lineto
+  stroke
+  m2 setmatrix
+} def
+
+
+% circle macro position 
+/bcircle {
+	/m matrix currentmatrix def
+	translate
+	20 0 moveto
+	0 0 20 0 360 arc
+	closepath
+	stroke
+	m setmatrix
+} def
+
+
+% circle macro position 
+/ccircle {
+	/m matrix currentmatrix def
+	translate
+	0 0 4 0 360 arc
+	closepath
+	fill
+	m setmatrix
+} def
+
+% put C with super and subscript
+% arguments subscript, super
+/cc {
+	/m matrix currentmatrix def
+	translate
+	/Palatino-Roman findfont
+	12 scalefont
+	setfont
+	0 0 moveto
+	(C) show
+	/Palatino-Roman findfont
+	8 scalefont
+	setfont
+	8 -3 moveto
+	show
+	8 7 moveto
+	show
+	m setmatrix
+} def
+
+% put delta with super and subscript
+% arguments subscript, super
+/dd {
+	/m matrix currentmatrix def
+	translate
+	/Symbol findfont
+	12 scalefont
+	setfont
+	0 0 moveto
+	(d) show
+	/Palatino-Roman findfont
+	8 scalefont
+	setfont
+	7 -3 moveto
+	show
+	7 7 moveto
+	show
+	m setmatrix
+} def
+
+/x {
+	/m matrix currentmatrix def
+	translate
+	-4 -4 moveto
+	4 4 lineto
+	stroke
+	-4 4 moveto
+	4 -4 lineto
+	stroke
+	m setmatrix
+} def
+
+
+
+306 556 translate
+
+2 setlinewidth
+-50 50 moveto
+50 -50 lineto
+stroke
+1 setlinewidth
+
+	/Palatino-Roman findfont
+	12 scalefont
+	setfont
+
+70 70 moveto
+%(-m-4) show
+
+-15 -15 moveto
+%(-1) show
+
+20 20 translate
+-100 0 moveto
+-10 30 lineto
+50 50 50  50 30 -10 curveto
+0 -100 lineto
+stroke
+
+
+
+showpage

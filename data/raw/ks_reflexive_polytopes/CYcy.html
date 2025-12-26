@@ -1,0 +1,172 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html><head>
+
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Calabi-Yau data - CY/4d</title>
+<link href="main.css" rel="stylesheet"/>
+</head><body bgcolor="#e9f0f0">
+
+<menu>
+  <li class="home"><a href="CYhome.html">H o m e</a></li>
+  <li class="palp"><a href="CYpalp.html">P A L P</a></li>
+  <li class="k3"><a href="CYk3.html">K3 / 3d</a></li>
+  <li class="cy active" ><a href="CYcy.html">CY / 4d</a></li>
+  <li class="ff"><a href="CYff.html">4&ndash;folds</a></li>
+  <li class="lg"><a href="CYlg.html">LG / cft</a></li>
+  <li class="csws"><a href="CYcsws.html">CS/WS</a></li>
+  <li class="rgc"><a href="CYrgc.html">RGC</a></li>
+</menu>
+
+<font size="3">
+<br>
+</font><h2><font size="3"> 	<font size="5" color="#df0000">
+	Reflexive polyhedra in 4 dimensions	</font></font></h2>
+<ul><font size="3"><li>There are <b>473,800,776 reflexive polyhedra</b> in 4 dimensions<br><font size="3">(cf. <a href="https://arXiv.org/abs/hep-th/0002240">
+	hep-th/0002240</a>, <a href="https://arXiv.org/abs/math.AG/0001106">
+	math.AG/0001106</a>). 
+
+<form method="get" action="http://quark.itp.tuwien.ac.at/cgi-bin/cy/cydata.cgi">
+	Search our data base for any combination of the following data:
+<br>	#Points=<input name="M" size="3" type="text">
+	#Vertices=<input name="V" size="2" type="text">
+	#(Dual points)=<input name="N" size="3" type="text">
+	#Facets=<input name="F" size="2" type="text">
+<br>	h<sub>11</sub>=<input name="h11" size="3" type="text"> 
+	h<sub>12</sub>=<input name="h12" size="3" type="text">
+	Euler Number=<input name="chi" size="3" type="text">
+<br>	Output limited to <!--INPUT NAME="L" TYPE=text SIZE="6" value="10000"-->
+	<select name="L"> <option value="100">100</option><option selected="selected" value="1000">1000</option><option value="10000">10000</option><option value="100000">
+	100000</option><option value="1000000">1000000</option></select> polyhedra
+	<input value="Perform Search" type="submit">	<input type="reset">
+</form></font>
+
+<!-- vi /etc/apache/srm.conf -> ScriptAlias /cgi-bin/cy/ /local-cgi-dir/
+   /etc/init.d/apache reload	oder   ln -s /local-cgi-dir/ /usr/lib/cgi/cy-->
+<font size="3"></font>
+<br>
+</li>
+
+<li> The <b>complete list</b> is also available
+<ul><li>      in the form of 30
+<a href="http://quark.itp.tuwien.ac.at/%7Ekreuzer/V">gzipped ascii files</a>
+v05.gz, ...,v33.gz and v36.gz
+(each file contains all reflexive 4-polytopes with the number of
+vertices corresponding to the file name), and </li>
+<li>in <a href="https://huggingface.co/datasets/calabi-yau-data/polytopes-4d">
+      Parquet format</a>
+  (at the Hugging Face Hub).</li>
+</ul>
+</li>
+<br>
+
+
+<li>	The different <b>Hodge numbers</b> <font size="3">[<i>h11 h12 chi</i>] </font>
+	are listed in separate files for  <font size="3">
+</font><ul>
+<font size="3"><li>
+	7,555 hypersurfaces in WPs 
+[<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/pub/misc/wp4.spec.gz">2,780 Hodge data</a>], 
+</li><li>	184,026 IP weight systems 
+[<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/pub/misc/toric.spec.gz">10,237 Hodge data</a>],
+</li><li>	473,800,776 reflexive polyhedra 
+[<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/pub/misc/alltoric.spec.gz">30,108 Hodge data</a>].</li></font>
+</ul>	
+<br>
+
+</li><li><b>Weight systems</b> and r-maximal polytopes 
+<font size="3">
+(for explanations see <a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYcsws.html">CS/WS</a>):
+<br>
+</font>
+There are 
+<ul>
+<font size="3"><li>184,026 <a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/W/w5.ip.gz">single IP weight systems</a>
+<br>
+You can search for Hodge numbers among the corresponding polytopes:
+<form method="get" action="/cgi-bin/cy/SearchHo.cgi">
+<!--form method=get action="/~kreuzer/cgi/SearchHo.cgi"-->
+	h<sub>11</sub>=<input name="h11" size="3" type="text"> 
+	and h<sub>12</sub>=<input name="h12" size="3" type="text">
+<input value="Perform Search" type="submit">	<input type="reset">
+</form>					
+</li><li> 16,040 <a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/W/w44.ip.gz">CWS</a> of the type 4+4 (non-trivial)
+</li><li> 1,122 <a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/W/w34.ip.gz">CWS</a> of the type 3+4 (non-trivial)
+</li><li> 6 <a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/W/w33.ip">CWS</a> of the type 3+3 (trivial)
+</li><li> 36 <a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/W/w333.ip">CWS</a> of the type 3+3+3 (non-trivial)
+</li><li> 116 CWS from combining the (C)WS for d=3 trivially with (1,1); 
+</li>
+</ul> 
+308 of the above are <a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/W/wCY.rmin">r-minimal (C)WS.</a> 
+<br>There are <a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/W/pCY.sm">25 further r-maximal polytopes.</a> 
+</font>
+<br>	
+<br>
+</li><li>	<b>K3 fibered toric CY hypersurfaces</b>	 <font size="3">
+<br>
+	The Newton polyhedra and Calabi-Yau hypersurfaces corresponding to 
+	the <b>184,026 IP weight systems</b> were analysed in 
+	<a href="https://arXiv.org/abs/hep-th/9610154">
+	hep-th/9610154</a>.
+	Informations on <b>Hodge</b>  
+	and <b>fibration data</b>, as well as  numbers of <b>points</b>  and 
+	<b>vertices</b>  in the M and N lattices,
+	are encoded in the following files:
+</font><ul><font size="3"><li><a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/pub/misc/Hodge.K3.gz"> 
+	All 184,026 weights</a> 
+	(2.37 MB, uncompressed 10.6 MB),
+</li><li>	subset with
+	<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/pub/misc/Hodge356.K3.gz">
+	lowest degrees</a> (356 kB),
+</li><li>	subset with
+        <a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/pub/misc/Hodge54.K3.gz">
+	highest degrees</a> (54 kB).
+</li></font></ul>
+
+<font size="3">	The files contain lines of the form
+<font size="3">
+<pre>   1 1 1  1  1   5=d  TS  H: 1 101  M:126  5  N: 6  5  P:0  F:0
+   3 4 5  6  8  26=d  rS  H:14  24  M: 32 14  N:19 10  P:-  F:1  6
+   1 3 3 10 14  31=d  Tn  H:14 106  M:143  9  N:21  7  P:0  F:0
+   4 7 7 10 12  40=d  rn  H:28  16  M: 23  7  N:25  6  P:3  F:2  7 12
+</pre>
+</font>
+	encoding <b>general data</b>
+<font size="3">
+</font></font><ul>
+<font size="3"><font size="3">	
+<li>
+<b>5 weights</b> and their sum, the degree <b>d</b>;
+</li>
+<li>	<b>TS</b> means <b>T</b>ransverse (7555 lines)
+	and that the Newton polytope <b>S</b>pans the coordinate hyperplanes
+	(38727 lines); 
+<br>	other cases are `non-transverse <b>r</b>eflexive' and/or 
+	`<b>n</b>on-spanning';
+</li>
+<li>	<b>H</b>odge numbers are listed as <i>h11</i> and <i>h12</i>,
+</li>
+<li>	<b>M: </b><i>p v</i> and <b>N: </b><i>p v</i> are the numbers of 
+	<i>points</i> and <i>vertices</i> of the Newton polytope and of 
+	its dual, 
+	respectively;
+</li
+</font>
+</font>
+</ul>
+<font size="3">	
+and <b>fibration data</b>
+<font size="3">
+<ul>
+<li>	<b>P: </b><i>p</i> indicates the number <i>p</i> of reflexive 
+	projections,
+	which correspond to <i>K3 fibrations</i> (<b>P: -</b> if unknown<!--;
+	otherwise <i>p ge f</I> since-->).
+</li>
+<li>	<b>F: </b><i>f</i> indicates the number <i>f</i> of projections onto 
+	reflexive facets. For  <i>f&gt;0</i> the last <i>f</i> numbers denote 
+	the weights whose coordinate hyperplanes carry the K3 facets.
+</ul>
+</font>	
+</font></li></font></ul></body></html>
