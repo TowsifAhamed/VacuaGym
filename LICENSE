@@ -1,0 +1,40 @@
+# VacuaGym Dual License
+
+SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 OR LicenseRef-VacuaGym-Commercial
+
+Copyright (c) 2025 Towsif Ahamed (towsif.kuet.ac.bd@gmail.com)
+
+## Licensing Options
+
+This software is available under two licenses:
+
+### 1. PolyForm Noncommercial License 1.0.0 (Default)
+
+For noncommercial use, this software is licensed under the PolyForm Noncommercial License 1.0.0.
+
+The full text of the PolyForm Noncommercial License 1.0.0 is available at:
+- In this repository: `licenses/PolyForm-Noncommercial-1.0.0.txt`
+- Online: https://polyformproject.org/licenses/noncommercial/1.0.0/
+
+**Summary**: You may use, modify, and distribute this software for noncommercial purposes only. Commercial use is not permitted under this license.
+
+### 2. Commercial License (LicenseRef-VacuaGym-Commercial)
+
+For commercial use, you must obtain a separate commercial license.
+
+See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) for details on obtaining a commercial license.
+
+## Which License Applies to You?
+
+- **Academic researchers, students, hobbyists**: Use under PolyForm Noncommercial License
+- **Companies, startups, commercial entities**: Contact for commercial license
+
+## Contact
+
+For commercial licensing inquiries:
+- Email: towsif.kuet.ac.bd@gmail.com
+- Name: Towsif Ahamed
+
+---
+
+**Note**: Any contributions to this project are subject to the terms outlined in [CONTRIBUTING.md](CONTRIBUTING.md).

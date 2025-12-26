@@ -1,0 +1,18 @@
+# VacuaGym Dependencies
+# Core numerical and scientific computing
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Data manipulation and storage
+pandas>=2.0.0
+pyarrow>=12.0.0
+
+# Machine learning
+torch>=2.0.0
+scikit-learn>=1.3.0
+
+# Graph structures
+networkx>=3.0
+
+# Progress tracking
+tqdm>=4.65.0

@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use VacuaGym in your research, please cite it as below."
+title: "VacuaGym: ML Benchmarks for String Theory Compactifications"
+version: 0.1.0-dev
+date-released: 2025-12-26
+authors:
+  - family-names: "Ahamed"
+    given-names: "Towsif"
+    email: "towsif.kuet.ac.bd@gmail.com"
+repository-code: "https://github.com/towsif/vacua-gym"
+license: "PolyForm-Noncommercial-1.0.0"
+keywords:
+  - string theory
+  - machine learning
+  - calabi-yau manifolds
+  - benchmarks
+  - reproducibility
+abstract: "VacuaGym is a source-available, reproducible, simulation-driven benchmark and ML framework for exploring string/M-theory compactifications using public geometry datasets. It provides standardized datasets, benchmark tasks, and tools for machine learning research on theoretical physics."

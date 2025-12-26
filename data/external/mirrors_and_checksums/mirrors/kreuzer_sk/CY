@@ -1,0 +1,175 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html><head>
+
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Calabi-Yau data</title>
+<link href="main.css" rel="stylesheet"/>
+</head><body bgcolor="#e9f0f0">
+
+<menu>
+  <li class="home active"><a href="CYhome.html">H o m e</a></li>
+  <li class="palp"><a href="CYpalp.html">P A L P</a></li>
+  <li class="k3"><a href="CYk3.html">K3 / 3d</a></li>
+  <li class="cy" ><a href="CYcy.html">CY / 4d</a></li>
+  <li class="ff"><a href="CYff.html">4&ndash;folds</a></li>
+  <li class="lg"><a href="CYlg.html">LG / cft</a></li>
+  <li class="csws"><a href="CYcsws.html">CS/WS</a></li>
+  <li class="rgc"><a href="CYrgc.html">RGC</a></li>
+</menu>
+
+<font size="3">
+<font color="#df0000" size="8">		<b>Calabi-Yau data</b>		</font>
+
+<br><br>
+This website was set up by Maximilian Kreuzer and Harald Skarke to host
+numerical data of Calabi-Yau manifolds of various dimensions 
+(<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYk3.html">K3 spaces</a>,
+<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYcy.html">
+   Calabi-Yau threefolds</a>, 
+<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYff.html">
+   higher dimensional CY manifolds</a>) 
+and the program 
+<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYpalp.html">PALP</a>
+for creating and manipulating these data.
+It also contains information on our 
+<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYcsws.html">
+    classification scheme</a> 
+for reflexive polyhedra and data of 
+<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYlg.html">
+   Landau-Ginzburg</a> models and
+<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYrgc.html">
+   reflexive Gorenstein cones</a>.
+<br><br>
+The site was administrated by Max until his much too early death in 
+November 2010.
+If you want to be reminded of Max and his work, you can look at the last 
+version of his 
+<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/">home page</a> or at his
+<!-- one of the following pages in German:
+<a href="http://www.tuwien.ac.at/aktuelles/news_detail/article/6753/"> 
+   Nachruf auf www.tuwien.ac.at</a>,
+<a href="http://www.teilchen.at/news/386">
+   Nachruf auf teilchen.at</a>, -->
+<a href="http://de.wikipedia.org/wiki/Maximilian_Kreuzer">
+   Wikipedia entry</a> (in German).
+
+<br><br>
+If you have any comments, questions or suggestions regarding this site, 
+please do not hesitate to 
+  <a href="mailto:skarke@hep.itp.tuwien.ac.at">contact me</a> 
+(Harald Skarke).
+
+<br><br>
+</font>
+<ul>
+<font size="3">       
+
+<li>	<font color="#0000df" size="3">
+	<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYpalp.html"><b>PALP:</b>
+	a Package for Analyzing Lattice Polytopes</a></font>
+<br>	<font size="3">The source code of our programs 
+<!-- that we used to	compute the following data -->
+(available under the GNU licence terms) 
+<!-- 
+<br>	Included into <b><a href="http://sage.math.washington.edu/sage/">SAGE</a></b> (Software for
+     	Algebra and Geometry Experimentation) 
+-->
+</font>
+<br><br>
+
+</li>
+<li>	<font color="#0000df" size="3">
+	<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYk3.html"><b>K3/3d: </b>
+	reflexive polyhedra in 3 dimensions</a></font>
+<br>	<font size="3">
+	The 4319 reflexive polyhedra with point, vertex, 
+	Picard and correction numbers</font>
+<br><br>
+
+</li>
+<li>	<font color="#0000df" size="3">
+	<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYcy.html"><b>CY/4d: </b>
+	reflexive polyhedra in 4 dimensions</a></font>
+<br>	<font size="3">The 473,800,776 reflexive polyhedra with
+	point, vertex and Hodge numbers;
+<br>	
+        weight systems and K3 fibrations</font>
+<br><br>
+</li>
+<li>	<font color="#0000df" size="3">
+	<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYff.html">
+<b>4-folds</b> and beyond: weight systems in <ge>5 and 6 dimensions</ge></a>
+</font>
+<br>	
+<font size="3">	
+<!-- Transversal &amp; reflexive weights, Hodge data -->
+Hypersurfaces in weighted projective spaces and toric varieties
+</font>	
+<br><br>
+</li>
+<li>	<font color="#0000df" size="3">
+	<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYlg.html"><b>LG/cft:</b>
+	LG models, orbifolds, and weighted projective space
+	</a></font>
+<br>	<font size="3">Weights and spectra for LG models and <!--their abelian-->
+	orbifolds (with discrete torsion)		</font>	
+<br><br>
+
+</li>
+<li>	<font color="#0000df" size="3">
+	<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYcsws.html"><b>CS/WS:</b>
+	classification scheme and weight systems</a></font>
+<br>	<font size="3">Lists of weight systems and an outline of the 
+classification procedure</font>	
+<br><br>
+</li>
+<li>	<font color="#0000df" size="3">
+	<a href="http://hep.itp.tuwien.ac.at/%7Ekreuzer/CY/CYrgc.html"><b>RGC:</b>
+	Reflexive Gorenstein cones</a></font>
+<br>	<font size="3">Lists of basic weight systems pertaining to 
+reflexive Gorenstein cones</font>	
+</li></font>
+
+</ul>
+<!-- ---------------------------------------------------------------- --
+<hr>
+<font size="3">
+<!-- 
+<font size="3">
+
+<br>	Other CY sites: 
+	<a href="http://www.math.okstate.edu/%7Ekatz/CY/">Sheldon KATZ</a> 
+		(Oklahoma/USA),
+	<a href="http://www.th.physik.uni-bonn.de/th/Supplements/cy.html">
+		Rolf SCHIMMRIGK</a> (Bonn/Germany)
+<br><br>
+	The data on this page are maintained by 
+	<i>Maximilian KREUZER</i> and <i>Harald SKARKE</i>
+<br><br>
+</font>
+
+
+</font>
+<hr>
+<font size="3">	
+<!-- ---------------------------------------------------------------- --
+
+<br>
+<font size="3">
+Comments / problems / questions / suggestions: send an
+<ul>
+  <a href="mailto:kreuzer@hep.itp.tuwien.ac.at">e-mail</a> to
+  <a href="http://hep.itp.tuwien.ac.at/~kreuzer/">Maximilian Kreuzer </a> 
+or an 
+<br> 
+  <a href="mailto:skarke@hep.itp.tuwien.ac.at">e-mail</a> to
+<!--a href="http://tph.tuwien.ac.at/~skarke/"--
+<b>Harald Skarke</b>
+</ul>
+-->
+</font></font>
+
+
+</body></html>

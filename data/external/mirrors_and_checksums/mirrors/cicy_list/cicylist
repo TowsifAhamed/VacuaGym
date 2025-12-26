@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta content="text/html; charset=ISO-8859-1"
+ http-equiv="content-type">
+  <title>index1</title>
+</head>
+<body>
+<div style="text-align: center; color: rgb(255, 0, 0);"><big><span
+ style="font-weight: bold;"><big><big><span
+ style="text-decoration: underline;">The List of Complete Intersection
+Calabi-Yau Three-Folds</span><br>
+</big></big></span></big><big><big><span style="color: rgb(0, 0, 0);"><br>
+</span></big></big>
+<div style="text-align: left;"><span style="color: rgb(0, 0, 0);"><big><br>
+This website holds the list of 7890 Calabi-Yau manifolds defined as
+complete intersections in products of projective spaces, which was
+first compiled in&nbsp;</big></span><span style="color: rgb(0, 0, 0);"><big><a
+ href="http://inspirehep.net/record/21761?ln=en">P. Candelas,
+A.M.&nbsp;Dale, C.A. Lutken and R.
+Schimmrigk, Nucl.Phys.B298 (1988) 493</a>. Our data&nbsp;contains the
+Hodge numbers which were calculated in <a
+ href="http://inspirehep.net/record/251839?ln=en">P.S. Green, T. Hubsch
+and C. A. Lutken, Class.Quant.Grav. 6 (1989) 105</a>.&nbsp;</big></span><span
+ style="color: rgb(0, 0, 0);"><big>The Mathematica file of the data
+also holds the freely-acting discrete
+symmetries which have been found by V. Braun
+in <a href="http://arxiv.org/abs/arXiv:1003.3235">arXiv:1003.3235</a>.</big></span><br>
+<span style="color: rgb(0, 0, 0);"></span><span
+ style="color: rgb(0, 0, 0);"><big><br>
+</big></span>
+<ul>
+  <li><span style="color: rgb(0, 0, 0);"><big>Cicy three-fold data as a
+    <a href="./cicylist.txt">plain text file</a> (2.3MB).</big></span></li>
+</ul>
+<ul>
+</ul>
+<ul>
+  <li><span style="text-decoration: underline;"></span><span
+ style="color: rgb(0, 0, 0);"><big>Cicy three-fold data as a <a
+ href="./cicylist.m">Mathematica file</a> (6.1MB).</big></span><span
+ style="color: rgb(0, 0, 0);"></span></li>
+</ul>
+</div>
+</div>
+</body>
+</html>
