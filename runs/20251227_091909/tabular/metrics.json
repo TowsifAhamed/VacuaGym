@@ -1,0 +1,125 @@
+{
+  "cicy3_iid_split.json_logistic": {
+    "train": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "val": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "test": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0,
+      "classification_report": {
+        "failed": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 1128.0
+        },
+        "stable": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 73.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 1201.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 1201.0
+        }
+      }
+    }
+  },
+  "cicy3_iid_split.json_random_forest": {
+    "train": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "val": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "test": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0,
+      "classification_report": {
+        "failed": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 1128.0
+        },
+        "stable": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 73.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 1201.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 1201.0
+        }
+      }
+    }
+  },
+  "cicy3_iid_split.json_mlp": {
+    "train": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "val": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0
+    },
+    "test": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0,
+      "classification_report": {
+        "failed": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 1128.0
+        },
+        "stable": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 73.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 1201.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 1201.0
+        }
+      }
+    }
+  }
+}
