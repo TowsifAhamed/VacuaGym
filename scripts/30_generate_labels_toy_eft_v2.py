@@ -41,7 +41,7 @@ import gc
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize
+from scipy.optimize import minimize, root, least_squares
 from scipy.linalg import eigh
 from tqdm import tqdm
 import json
@@ -58,11 +58,25 @@ try:
 except ImportError:
     threadpool_limits = None
 
+try:
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent
+except NameError:
+    PROJECT_ROOT = Path.cwd()
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+from vacua_gym.moduli import map_h21_to_n_moduli
+
 # Configuration
 INPUT_DIR = Path("data/processed/tables")
 OUTPUT_DIR = Path("data/processed/labels")
 CHECKPOINT_DIR = Path("data/processed/labels/checkpoints_v2")
 RANDOM_SEED = 42
+DEFAULT_MIN_MODULI = 2
+DEFAULT_MAX_MODULI = 32
+DEFAULT_MODULI_MAP_MODE = "direct_cap"
+DEFAULT_CRITICAL_POINT_METHOD = "hybrid"
+DEFAULT_GRAD_TOL = 1e-5
+DEFAULT_HESS_EPS = 1e-6
+DEFAULT_REGIME_MIXTURE = "generic:0.55,stabilized:0.25,tachyonic:0.15,runaway:0.05"
 
 # Smoothing parameter for |x| → sqrt(x² + δ²)
 SMOOTH_ABS_DELTA = 1e-8
@@ -80,6 +94,7 @@ GB_BYTES = 1024 ** 3
 _THREADPOOL_LIMITS_SET = False
 _WORKER_MEM_EVERY = 0
 _WORKER_TASK_COUNT = 0
+_WORKER_CONFIG = {}
 
 
 def _read_meminfo():
@@ -157,6 +172,13 @@ def ensure_threadpool_limits():
         return
     threadpool_limits(limits=1)
     _THREADPOOL_LIMITS_SET = True
+
+
+def init_worker(config):
+    """Initialize worker-level config for multiprocessing."""
+    global _WORKER_CONFIG
+    _WORKER_CONFIG = config
+    ensure_threadpool_limits()
 # Create checkpoint directory
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -171,26 +193,95 @@ def smooth_abs_derivative(x, delta=SMOOTH_ABS_DELTA):
     return x / np.sqrt(x**2 + delta)
 
 
+def parse_regime_mixture(spec):
+    """Parse mixture string like 'generic:0.6,stabilized:0.2' into weights."""
+    parts = [p.strip() for p in spec.split(",") if p.strip()]
+    mixture = []
+    for part in parts:
+        if ":" not in part:
+            raise ValueError(f"Invalid regime mixture entry: '{part}'")
+        name, weight = part.split(":", 1)
+        name = name.strip()
+        weight_val = float(weight)
+        if weight_val < 0:
+            raise ValueError(f"Regime weight must be non-negative: '{part}'")
+        mixture.append((name, weight_val))
+    total = sum(w for _, w in mixture)
+    if total <= 0:
+        raise ValueError("Regime mixture weights must sum to > 0")
+    return [(name, w / total) for name, w in mixture]
+
+
+def sample_regime_params(n_moduli, regime, rng):
+    """
+    Sample regime parameters with explicit n-dependent scaling.
+    """
+    scale = np.sqrt(max(n_moduli, 1))
+    if regime == "generic":
+        return {"mass_shift": 0.0, "linear_scale": 0.0}
+    if regime == "stabilized":
+        return {"mass_shift": float(rng.uniform(0.05, 0.2) * scale), "linear_scale": 0.0}
+    if regime == "tachyonic":
+        return {"mass_shift": float(-rng.uniform(0.02, 0.12) * scale), "linear_scale": 0.0}
+    if regime == "runaway":
+        return {"mass_shift": 0.0, "linear_scale": float(rng.uniform(0.15, 0.35) * scale)}
+    raise ValueError(f"Unknown regime: {regime}")
+
+
+def sample_regime(n_moduli, mixture, rng):
+    """Sample a regime name + params from a categorical mixture."""
+    names = [name for name, _ in mixture]
+    weights = np.array([w for _, w in mixture], dtype=float)
+    weights = weights / weights.sum()
+    idx = int(rng.choice(len(names), p=weights))
+    regime = names[idx]
+    regime_params = sample_regime_params(n_moduli, regime, rng)
+    return regime, regime_params
+
+
+def _seed_component(value, default=0):
+    if value is None:
+        return default
+    try:
+        if isinstance(value, (np.integer, int, np.floating, float)):
+            return int(value)
+        return int(value)
+    except Exception:
+        return abs(hash(value)) % (2**32)
+
+
+def make_seed(base, *components):
+    """Build a deterministic integer seed from mixed components."""
+    if base is None:
+        return None
+    seed_int = _seed_component(base)
+    for comp in components:
+        seed_int = (seed_int + _seed_component(comp)) % (2**32)
+    return seed_int
+
+
 class ToyEFTPotential:
     """
     Toy EFT scalar potential WITH COMPONENT TRACKING for runaway detection.
     """
 
-    def __init__(self, n_moduli, flux_params=None, rng=None):
+    def __init__(self, n_moduli, flux_params=None, rng=None, regime="generic", regime_params=None):
         self.n_moduli = max(1, n_moduli)
+        self.regime = regime
+        self.regime_params = regime_params or {}
 
         if rng is None:
             rng = np.random.default_rng()
         self.rng = rng
 
         if flux_params is None:
-            flux_params = self._generate_flux_parameters()
+            flux_params = self._generate_flux_parameters(self.regime_params)
 
         self.flux_params = flux_params
         lambda_mat = self.flux_params['lambda_coupling']
         self.lambda_sym = 0.5 * (lambda_mat + lambda_mat.T)
 
-    def _generate_flux_parameters(self):
+    def _generate_flux_parameters(self, regime_params):
         """Generate flux parameters with better convergence properties."""
         params = {
             'F3': self.rng.integers(-10, 10, size=self.n_moduli),
@@ -210,7 +301,15 @@ class ToyEFTPotential:
             'p_up': self.rng.uniform(1.0, 2.0),
             # CRITICAL FIX: Stronger quartic for runaway prevention
             'gamma': self.rng.uniform(0.1, 0.5),  # Increased from 0.0-0.3
+            'mass_shift': float(regime_params.get('mass_shift', 0.0)),
         }
+
+        linear_scale = float(regime_params.get('linear_scale', 0.0))
+        if linear_scale > 0:
+            params['linear_coeffs'] = self.rng.normal(0.0, linear_scale, size=self.n_moduli)
+        else:
+            params['linear_coeffs'] = np.zeros(self.n_moduli)
+
         return params
 
     def potential(self, phi):
@@ -221,6 +320,12 @@ class ToyEFTPotential:
         V_flux = np.sum(M_sq * phi**2)
 
         V_cross = np.dot(phi, np.dot(self.lambda_sym, phi))
+
+        mass_shift = self.flux_params.get('mass_shift', 0.0)
+        V_mass_shift = mass_shift * np.sum(phi**2)
+
+        linear_coeffs = self.flux_params.get('linear_coeffs')
+        V_linear = float(np.dot(linear_coeffs, phi)) if linear_coeffs is not None else 0.0
 
         phi_abs_smooth = smooth_abs(phi)
         phi_sum = np.sum(phi_abs_smooth)
@@ -240,13 +345,15 @@ class ToyEFTPotential:
         self._last_components = {
             'V_flux': V_flux,
             'V_cross': V_cross,
+            'V_mass_shift': V_mass_shift,
+            'V_linear': V_linear,
             'V_np': V_np,
             'V_uplift': V_uplift,
             'V_quartic': V_quartic,
             'phi_norm': np.sqrt(phi_norm_sq)
         }
 
-        return V_flux + V_cross + V_np + V_uplift + V_quartic
+        return V_flux + V_cross + V_mass_shift + V_linear + V_np + V_uplift + V_quartic
 
     def gradient(self, phi):
         """Analytic gradient ∇V(φ)."""
@@ -258,6 +365,13 @@ class ToyEFTPotential:
         grad += 2.0 * M_sq * phi
 
         grad += 2.0 * np.dot(self.lambda_sym, phi)
+
+        mass_shift = self.flux_params.get('mass_shift', 0.0)
+        grad += 2.0 * mass_shift * phi
+
+        linear_coeffs = self.flux_params.get('linear_coeffs')
+        if linear_coeffs is not None:
+            grad += linear_coeffs
 
         phi_abs_smooth = smooth_abs(phi)
         phi_sum = np.sum(phi_abs_smooth)
@@ -287,6 +401,9 @@ class ToyEFTPotential:
         np.fill_diagonal(H, 2.0 * M_sq)
 
         H += 2.0 * self.lambda_sym
+
+        mass_shift = self.flux_params.get('mass_shift', 0.0)
+        np.fill_diagonal(H, np.diag(H) + 2.0 * mass_shift)
 
         phi_abs_smooth = smooth_abs(phi)
         phi_sum = np.sum(phi_abs_smooth)
@@ -377,9 +494,29 @@ def estimate_metastability_barrier(potential, phi_crit, negative_eigenvector):
     return barrier_height
 
 
-def analyze_critical_point(potential, phi_crit):
+def classify_stability_from_eigenvalues(eigenvalues, hess_eps):
+    """Classify stability from Hessian eigenvalues."""
+    n_positive = np.sum(eigenvalues > hess_eps)
+    n_negative = np.sum(eigenvalues < -hess_eps)
+    n_flat = len(eigenvalues) - n_positive - n_negative
+
+    if n_flat >= len(eigenvalues) // 2:
+        stability = 'marginal'
+    elif n_positive == len(eigenvalues):
+        stability = 'stable'
+    elif n_negative == len(eigenvalues):
+        stability = 'unstable'
+    elif n_positive > 0 and n_negative > 0:
+        stability = 'saddle'
+    else:
+        stability = 'marginal'
+
+    return stability, int(n_positive), int(n_negative), int(n_flat)
+
+
+def analyze_critical_point(potential, phi_crit, grad_norm, hess_eps):
     """
-    Analyze stability with METASTABILITY and RUNAWAY detection.
+    Analyze stability with RUNAWAY detection and standardized classification.
     """
     # Runaway check
     V_crit = potential.potential(phi_crit)
@@ -398,35 +535,15 @@ def analyze_critical_point(potential, phi_crit):
     # Hessian analysis
     H = potential.hessian(phi_crit)
     eigenvalues, eigenvectors = eigh(H)
+    stability, n_positive, n_negative, n_flat = classify_stability_from_eigenvalues(
+        eigenvalues, hess_eps
+    )
 
-    eig_scale = max(np.abs(eigenvalues).max(), 1e-6)
-    EIG_THRESHOLD = max(eig_scale * 1e-8, 1e-12)
-
-    n_positive = np.sum(eigenvalues > EIG_THRESHOLD)
-    n_negative = np.sum(eigenvalues < -EIG_THRESHOLD)
-    n_flat = np.sum(np.abs(eigenvalues) <= EIG_THRESHOLD)
-
-    # Enhanced taxonomy with metastability
     barrier_height = None
-    if n_flat >= len(eigenvalues) // 2:
-        stability = 'marginal'
-    elif n_positive == len(eigenvalues):
-        stability = 'stable'
-    elif n_negative == len(eigenvalues):
-        stability = 'unstable'
-    elif n_negative >= 1 and n_negative <= 2:
-        # Potential metastable state - estimate barrier
+    if n_negative >= 1:
         negative_idx = np.argmin(eigenvalues)
         negative_eigvec = eigenvectors[:, negative_idx]
         barrier_height = estimate_metastability_barrier(potential, phi_crit, negative_eigvec)
-
-        if barrier_height > abs(V_crit) * 0.5:  # Significant barrier
-            stability = 'metastable'
-        else:
-            stability = 'saddle'
-    else:
-        # Many negative eigenvalues
-        stability = 'saddle'
 
     condition_number = np.linalg.cond(H)
     det_hessian = np.linalg.det(H)
@@ -436,13 +553,18 @@ def analyze_critical_point(potential, phi_crit):
         'eigenvalues': eigenvalues.tolist(),
         'min_eigenvalue': float(eigenvalues.min()),
         'max_eigenvalue': float(eigenvalues.max()),
+        'n_neg_eigs': int(n_negative),
+        'n_pos_eigs': int(n_positive),
+        'n_flat_eigs': int(n_flat),
         'num_negative_eigenvalues': int(n_negative),
         'num_positive_eigenvalues': int(n_positive),
         'num_flat_eigenvalues': int(n_flat),
         'det_hessian': float(det_hessian),
         'condition_number': float(condition_number),
-        'eig_threshold_used': float(EIG_THRESHOLD),
+        'hess_eps': float(hess_eps),
+        'eig_threshold_used': float(hess_eps),
         'phi_norm': float(np.linalg.norm(phi_crit)),
+        'grad_norm': float(grad_norm),
     }
 
     if barrier_height is not None:
@@ -451,105 +573,313 @@ def analyze_critical_point(potential, phi_crit):
     return result
 
 
-def generate_label_for_geometry(geometry_id, n_moduli, n_samples=3, n_restarts=3, seed=None):
-    """
-    Generate label with MULTI-OPTIMIZER and MULTI-START strategy.
+def _is_divergent(phi):
+    if phi is None:
+        return True
+    if not np.all(np.isfinite(phi)):
+        return True
+    return np.linalg.norm(phi) > RUNAWAY_PHI_THRESHOLD * 5
 
-    Strategy:
-    1. Try L-BFGS-B first (gradient-based, no Hessian, handles bounds well)
-    2. If L-BFGS-B fails, try trust-ncg (2nd order)
-    3. Use n_restarts random initializations
-    4. Return best result (lowest potential)
-    """
-    rng = np.random.default_rng(seed=seed + geometry_id if seed is not None else None)
 
-    best_result = None
-    best_potential_value = np.inf
+def _cp_result(method, phi, potential, grad_norm, success, n_iterations, message, critical_point_method=None):
+    if critical_point_method is None:
+        critical_point_method = method
+    V_crit = np.nan
+    if phi is not None and np.all(np.isfinite(phi)):
+        V_crit = float(potential.potential(phi))
+    return {
+        'method': method,
+        'critical_point_method': critical_point_method,
+        'solver_status': f"{critical_point_method}:{'success' if success else 'fail'}",
+        'critical_point': phi.tolist() if phi is not None else None,
+        'potential_value': V_crit,
+        'grad_norm': float(grad_norm) if np.isfinite(grad_norm) else np.nan,
+        'minimization_success': bool(success),
+        'n_iterations': int(n_iterations) if n_iterations is not None else None,
+        'solver_message': message,
+    }
+
+
+def minimize_V(potential, phi_init, grad_tol, max_iter):
+    """Baseline minimization of V with multi-optimizer fallback."""
+    attempts = []
+    for method, options in [
+        ('L-BFGS-B', {'maxiter': max_iter, 'ftol': 1e-10}),
+        ('trust-ncg', {'maxiter': max_iter, 'gtol': grad_tol}),
+    ]:
+        try:
+            result = minimize(
+                potential.potential,
+                phi_init,
+                method=method,
+                jac=potential.gradient,
+                hessp=potential.hessp if method == 'trust-ncg' else None,
+                options=options,
+            )
+            phi = result.x
+            grad_norm = np.linalg.norm(potential.gradient(phi))
+            success = result.success and grad_norm < grad_tol and not _is_divergent(phi)
+            record = _cp_result(
+                method,
+                phi,
+                potential,
+                grad_norm,
+                success,
+                result.nit,
+                result.message,
+                critical_point_method="minimize_V",
+            )
+            if success:
+                return record
+            attempts.append(record)
+        except Exception as exc:
+            attempts.append(
+                _cp_result(
+                    method,
+                    None,
+                    potential,
+                    np.inf,
+                    False,
+                    None,
+                    str(exc),
+                    critical_point_method="minimize_V",
+                )
+            )
+
+    if attempts:
+        best = min(attempts, key=lambda r: r.get('grad_norm', np.inf))
+        best['critical_point_method'] = "minimize_V"
+        best['solver_status'] = "minimize_V:fail"
+        return best
+    return _cp_result("minimize_V", None, potential, np.inf, False, None, "no_attempts")
+
+
+def minimize_gradnorm(potential, phi_init, grad_tol, max_iter):
+    """Minimize G=0.5*||grad V||^2 using analytic Hessian-gradient."""
+    def objective(phi):
+        g = potential.gradient(phi)
+        return 0.5 * float(np.dot(g, g))
+
+    def grad(phi):
+        g = potential.gradient(phi)
+        H = potential.hessian(phi)
+        return np.dot(H, g)
+
+    try:
+        result = minimize(
+            objective,
+            phi_init,
+            method='L-BFGS-B',
+            jac=grad,
+            options={'maxiter': max_iter, 'ftol': 1e-12},
+        )
+        phi = result.x
+        grad_norm = np.linalg.norm(potential.gradient(phi))
+        success = result.success and grad_norm < grad_tol and not _is_divergent(phi)
+        return _cp_result(
+            "minimize_gradnorm",
+            phi,
+            potential,
+            grad_norm,
+            success,
+            result.nit,
+            result.message,
+            critical_point_method="minimize_gradnorm",
+        )
+    except Exception as exc:
+        return _cp_result(
+            "minimize_gradnorm",
+            None,
+            potential,
+            np.inf,
+            False,
+            None,
+            str(exc),
+            critical_point_method="minimize_gradnorm",
+        )
+
+
+def root_grad(potential, phi_init, grad_tol, max_iter):
+    """Solve ∇V=0 with root/least_squares methods."""
     attempts = []
 
-    for sample_idx in range(n_samples):
-        sample_rng = np.random.default_rng(
-            seed=(seed + geometry_id * 1000 + sample_idx) if seed else None
+    try:
+        result = root(
+            potential.gradient,
+            phi_init,
+            jac=potential.hessian,
+            method='hybr',
+            options={'maxfev': max_iter},
         )
-        potential = ToyEFTPotential(n_moduli, rng=sample_rng)
+        phi = result.x
+        grad_norm = np.linalg.norm(potential.gradient(phi))
+        success = result.success and grad_norm < grad_tol and not _is_divergent(phi)
+        record = _cp_result(
+            "root_grad",
+            phi,
+            potential,
+            grad_norm,
+            success,
+            result.nfev,
+            result.message,
+            critical_point_method="root_grad",
+        )
+        if success:
+            return record
+        attempts.append(record)
+    except Exception as exc:
+        attempts.append(
+            _cp_result(
+                "root_grad",
+                None,
+                potential,
+                np.inf,
+                False,
+                None,
+                str(exc),
+                critical_point_method="root_grad",
+            )
+        )
+
+    try:
+        result = least_squares(
+            potential.gradient,
+            phi_init,
+            jac=potential.hessian,
+            max_nfev=max_iter,
+        )
+        phi = result.x
+        grad_norm = np.linalg.norm(potential.gradient(phi))
+        success = result.success and grad_norm < grad_tol and not _is_divergent(phi)
+        record = _cp_result(
+            "root_grad",
+            phi,
+            potential,
+            grad_norm,
+            success,
+            result.nfev,
+            result.message,
+            critical_point_method="root_grad",
+        )
+        if success:
+            return record
+        attempts.append(record)
+    except Exception as exc:
+        attempts.append(
+            _cp_result(
+                "root_grad",
+                None,
+                potential,
+                np.inf,
+                False,
+                None,
+                str(exc),
+                critical_point_method="root_grad",
+            )
+        )
+
+    if attempts:
+        best = min(attempts, key=lambda r: r.get('grad_norm', np.inf))
+        best['solver_status'] = "root_grad:fail"
+        return best
+    return _cp_result("root_grad", None, potential, np.inf, False, None, "no_attempts")
+
+
+def find_critical_point(potential, phi_init, method, grad_tol, max_iter):
+    """Dispatch critical point solvers with hybrid fallback."""
+    if method == "minimize_V":
+        return minimize_V(potential, phi_init, grad_tol, max_iter)
+    if method == "minimize_gradnorm":
+        return minimize_gradnorm(potential, phi_init, grad_tol, max_iter)
+    if method == "root_grad":
+        return root_grad(potential, phi_init, grad_tol, max_iter)
+    if method == "hybrid":
+        for fallback in ["root_grad", "minimize_gradnorm", "minimize_V"]:
+            result = find_critical_point(potential, phi_init, fallback, grad_tol, max_iter)
+            if result.get('minimization_success'):
+                result['solver_status'] = f"{fallback}:success"
+                return result
+        result['solver_status'] = "hybrid:fail"
+        return result
+    raise ValueError(f"Unknown critical point method: {method}")
+
+
+def generate_label_for_geometry(
+    geometry_id,
+    n_moduli,
+    n_samples=3,
+    n_restarts=3,
+    seed=None,
+    critical_point_method=DEFAULT_CRITICAL_POINT_METHOD,
+    grad_tol=DEFAULT_GRAD_TOL,
+    hess_eps=DEFAULT_HESS_EPS,
+    regime_mixture=None,
+    regime_seed=None,
+    max_iter=2000,
+):
+    """
+    Generate label with MULTI-START critical point search.
+    """
+    rng_seed = make_seed(seed, geometry_id)
+    rng = np.random.default_rng(seed=rng_seed)
+    mixture = regime_mixture or parse_regime_mixture(DEFAULT_REGIME_MIXTURE)
+
+    best_result = None
+    best_grad_norm = np.inf
+    best_potential_value = np.inf
+    last_attempt = {}
+
+    regime_seed = seed if regime_seed is None else regime_seed
+    for sample_idx in range(n_samples):
+        sample_seed = make_seed(regime_seed, geometry_id, sample_idx)
+        sample_rng = np.random.default_rng(seed=sample_seed)
+        regime, regime_params = sample_regime(n_moduli, mixture, sample_rng)
+        potential = ToyEFTPotential(
+            n_moduli,
+            rng=sample_rng,
+            regime=regime,
+            regime_params=regime_params,
+        )
 
         for restart_idx in range(n_restarts):
-            # Random initial guess
             phi_init = rng.uniform(0.1, 2.0, size=n_moduli)
+            cp_result = find_critical_point(
+                potential, phi_init, critical_point_method, grad_tol, max_iter
+            )
+            last_attempt = {
+                'regime': regime,
+                'regime_params': regime_params,
+                'critical_point_method': cp_result.get('critical_point_method', critical_point_method),
+                'solver_status': cp_result.get('solver_status'),
+            }
 
-            # Try L-BFGS-B first (more robust)
-            try:
-                result_lbfgs = minimize(
-                    potential.potential,
-                    phi_init,
-                    method='L-BFGS-B',
-                    jac=potential.gradient,
-                    options={'maxiter': 2000, 'ftol': 1e-10}  # Increased iterations
-                )
-
-                if result_lbfgs.success:
-                    phi_crit = result_lbfgs.x
-                    V_crit = result_lbfgs.fun
-                    grad_norm = np.linalg.norm(potential.gradient(phi_crit))
-
-                    if grad_norm < 1e-4:  # Good critical point
-                        analysis = analyze_critical_point(potential, phi_crit)
-
-                        if V_crit < best_potential_value:
-                            best_potential_value = V_crit
-                            best_result = {
-                                'geometry_id': geometry_id,
-                                'n_moduli': n_moduli,
-                                'sample_idx': sample_idx,
-                                'restart_idx': restart_idx,
-                                'method': 'L-BFGS-B',
-                                'critical_point': phi_crit.tolist(),
-                                'potential_value': float(V_crit),
-                                **analysis,
-                                'minimization_success': True,
-                                'grad_norm': float(grad_norm),
-                                'n_iterations': int(result_lbfgs.nit),
-                            }
-                        continue  # Success, skip trust-ncg
-            except Exception as e:
-                pass  # Try trust-ncg
-
-            # Fallback to trust-ncg
-            try:
-                result_trust = minimize(
-                    potential.potential,
-                    phi_init,
-                    method='trust-ncg',
-                    jac=potential.gradient,
-                    hessp=potential.hessp,
-                    options={'maxiter': 2000, 'gtol': 1e-8}
-                )
-
-                if result_trust.success:
-                    phi_crit = result_trust.x
-                    V_crit = result_trust.fun
-                    grad_norm = np.linalg.norm(potential.gradient(phi_crit))
-
-                    if grad_norm < 1e-4:
-                        analysis = analyze_critical_point(potential, phi_crit)
-
-                        if V_crit < best_potential_value:
-                            best_potential_value = V_crit
-                            best_result = {
-                                'geometry_id': geometry_id,
-                                'n_moduli': n_moduli,
-                                'sample_idx': sample_idx,
-                                'restart_idx': restart_idx,
-                                'method': 'trust-ncg',
-                                'critical_point': phi_crit.tolist(),
-                                'potential_value': float(V_crit),
-                                **analysis,
-                                'minimization_success': True,
-                                'grad_norm': float(grad_norm),
-                                'n_iterations': int(result_trust.nit),
-                            }
-            except Exception as e:
+            if not cp_result.get('minimization_success'):
                 continue
+
+            phi_crit = np.array(cp_result['critical_point'])
+            analysis = analyze_critical_point(potential, phi_crit, cp_result['grad_norm'], hess_eps)
+
+            candidate = {
+                'geometry_id': geometry_id,
+                'n_moduli': n_moduli,
+                'sample_idx': sample_idx,
+                'restart_idx': restart_idx,
+                'regime': regime,
+                'regime_params': json.dumps(regime_params, sort_keys=True),
+                'requested_critical_point_method': critical_point_method,
+                **cp_result,
+                **analysis,
+            }
+
+            candidate_grad = cp_result.get('grad_norm', np.inf)
+            candidate_v = cp_result.get('potential_value', np.inf)
+
+            if (candidate_grad < best_grad_norm) or (
+                np.isclose(candidate_grad, best_grad_norm) and candidate_v < best_potential_value
+            ):
+                best_grad_norm = candidate_grad
+                best_potential_value = candidate_v
+                best_result = candidate
 
     if best_result is None:
         best_result = {
@@ -558,7 +888,14 @@ def generate_label_for_geometry(geometry_id, n_moduli, n_samples=3, n_restarts=3
             'stability': 'failed',
             'minimization_success': False,
             'potential_value': np.nan,
-            'failure_reason': 'all_optimizers_failed'
+            'grad_norm': np.nan,
+            'method': critical_point_method,
+            'critical_point_method': critical_point_method,
+            'solver_status': f"{critical_point_method}:fail",
+            'failure_reason': 'no_critical_point',
+            'regime': last_attempt.get('regime'),
+            'regime_params': json.dumps(last_attempt.get('regime_params', {}), sort_keys=True),
+            'requested_critical_point_method': critical_point_method,
         }
 
     return best_result
@@ -600,11 +937,29 @@ def process_single_row(args):
     global _WORKER_TASK_COUNT
     _WORKER_TASK_COUNT += 1
 
-    geom_id, n_moduli, dataset_name, seed = args
+    geom_id, n_moduli, dataset_name, h21_raw, moduli_warning = args
+    config = _WORKER_CONFIG
     label = generate_label_for_geometry(
-        geom_id, n_moduli, n_samples=3, n_restarts=3, seed=seed
+        geom_id,
+        n_moduli,
+        n_samples=config.get('n_samples', 3),
+        n_restarts=config.get('n_restarts', 3),
+        seed=config.get('seed'),
+        critical_point_method=config.get('critical_point_method', DEFAULT_CRITICAL_POINT_METHOD),
+        grad_tol=config.get('grad_tol', DEFAULT_GRAD_TOL),
+        hess_eps=config.get('hess_eps', DEFAULT_HESS_EPS),
+        regime_mixture=config.get('regime_mixture'),
+        regime_seed=config.get('regime_seed'),
+        max_iter=config.get('max_iter', 2000),
     )
     label['dataset'] = dataset_name
+    label['h21'] = h21_raw
+    label['h21_raw'] = h21_raw
+    label['moduli_map_mode'] = config.get('moduli_map_mode', DEFAULT_MODULI_MAP_MODE)
+    label['min_moduli'] = config.get('min_moduli', DEFAULT_MIN_MODULI)
+    label['max_moduli'] = config.get('max_moduli', DEFAULT_MAX_MODULI)
+    if moduli_warning:
+        label['moduli_map_warning'] = moduli_warning
     if _WORKER_MEM_EVERY and _WORKER_TASK_COUNT % _WORKER_MEM_EVERY == 0:
         rss_mb = get_rss_mb()
         print(f"  [worker {os.getpid()}] RSS={rss_mb:.1f} MB")
@@ -638,11 +993,53 @@ def main():
                        help="Samples per checkpoint chunk (smaller = lower peak RAM).")
     parser.add_argument("--maxtasksperchild", type=int, default=10,
                        help="Max tasks per worker before respawn (prevents memory creep).")
+    parser.add_argument("--moduli-map", type=str, default=DEFAULT_MODULI_MAP_MODE,
+                        choices=["direct_cap", "sqrt_cap", "log_cap"],
+                        help="Mapping mode from h21 to n_moduli.")
+    parser.add_argument("--min-moduli", type=int, default=DEFAULT_MIN_MODULI,
+                        help="Minimum allowed n_moduli after mapping.")
+    parser.add_argument("--max-moduli", type=int, default=DEFAULT_MAX_MODULI,
+                        help="Maximum allowed n_moduli after mapping.")
+    parser.add_argument("--critical-point-method", type=str, default=DEFAULT_CRITICAL_POINT_METHOD,
+                        choices=["hybrid", "root_grad", "minimize_gradnorm", "minimize_V"],
+                        help="Critical point solver strategy.")
+    parser.add_argument("--grad-tol", type=float, default=DEFAULT_GRAD_TOL,
+                        help="Gradient norm tolerance for critical point success.")
+    parser.add_argument("--hess-eps", type=float, default=DEFAULT_HESS_EPS,
+                        help="Eigenvalue threshold for stability classification.")
+    parser.add_argument("--regime-mixture", type=str, default=DEFAULT_REGIME_MIXTURE,
+                        help="Regime mixture string (e.g. generic:0.6,stabilized:0.2).")
+    parser.add_argument("--seed", type=int, default=RANDOM_SEED,
+                        help="Global RNG seed for reproducibility.")
+    parser.add_argument("--regime-seed", type=int, default=None,
+                        help="Optional RNG seed for regime sampling (default: --seed).")
     args = parser.parse_args()
 
     ensure_threadpool_limits()
     global _WORKER_MEM_EVERY
     _WORKER_MEM_EVERY = max(0, int(args.log_mem_every))
+
+    try:
+        regime_mixture = parse_regime_mixture(args.regime_mixture)
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
+        sys.exit(1)
+
+    regime_seed = args.regime_seed if args.regime_seed is not None else args.seed
+    worker_config = {
+        'seed': args.seed,
+        'regime_seed': regime_seed,
+        'regime_mixture': regime_mixture,
+        'critical_point_method': args.critical_point_method,
+        'grad_tol': args.grad_tol,
+        'hess_eps': args.hess_eps,
+        'min_moduli': args.min_moduli,
+        'max_moduli': args.max_moduli,
+        'moduli_map_mode': args.moduli_map,
+        'n_samples': 3,
+        'n_restarts': 3,
+        'max_iter': 2000,
+    }
 
     print("=" * 70)
     print("VacuaGym Phase 3: Toy EFT Stability (V2 - PUBLICATION GRADE)")
@@ -655,6 +1052,9 @@ def main():
     print("  ✓ Metastability barrier estimation")
     print("  ✓ Increased iteration limits (2000 iters)")
     print("  ✓ Better failure diagnostics")
+    print("  ✓ Geometry-conditioned moduli mapping (h21 → n_moduli)")
+    print("  ✓ Critical point search (root/gradnorm/hybrid)")
+    print("  ✓ Regime mixture for label diversity")
     print()
     mem_available, mem_total, swap_free, swap_total = get_memory_status()
     if mem_total:
@@ -664,6 +1064,17 @@ def main():
             f"SwapFree={swap_free / GB_BYTES:.2f} GB"
         )
         print()
+    print("Model config:")
+    print(
+        f"  Moduli map: mode={args.moduli_map}, min={args.min_moduli}, max={args.max_moduli}"
+    )
+    print(
+        "  Critical point: "
+        f"method={args.critical_point_method}, grad_tol={args.grad_tol}, hess_eps={args.hess_eps}"
+    )
+    print(f"  Regime mixture: {args.regime_mixture}")
+    print(f"  Seed: {args.seed} (regime_seed={regime_seed})")
+    print()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -683,18 +1094,17 @@ def main():
         print()
 
         del existing_df
-        import gc
         gc.collect()
 
     all_labels = []
 
     datasets = [
-        ('ks_features.parquet', 'polytope_id', 'h21'),
-        ('cicy3_features.parquet', 'cicy_id', 'num_complex_moduli'),
-        ('fth6d_graph_features.parquet', 'base_id', 'num_nodes'),
+        ('ks_features.parquet', 'polytope_id', 'h21', 'h21'),
+        ('cicy3_features.parquet', 'cicy_id', 'num_complex_moduli', 'h21'),
+        ('fth6d_graph_features.parquet', 'base_id', 'num_nodes', None),
     ]
 
-    for filename, id_col, moduli_col in datasets:
+    for filename, id_col, moduli_col, h21_col_name in datasets:
         filepath = INPUT_DIR / filename
 
         if not filepath.exists():
@@ -715,6 +1125,18 @@ def main():
         if moduli_col is not None and moduli_col in available_cols:
             cols.append(moduli_col)
             actual_moduli_col = moduli_col
+
+        h21_col = None
+        if h21_col_name and h21_col_name in available_cols and h21_col_name not in cols:
+            cols.append(h21_col_name)
+            h21_col = h21_col_name
+        elif h21_col_name in cols:
+            h21_col = h21_col_name
+
+        if filename == 'ks_features.parquet' and h21_col is None:
+            print("ERROR: KS features missing h21; cannot map geometry to n_moduli.")
+            print("       Rebuild features with scripts/20_build_features.py")
+            sys.exit(1)
 
         df = pd.read_parquet(filepath, columns=cols)
         print(f"  Loaded columns: {df.columns.tolist()}")
@@ -762,13 +1184,34 @@ def main():
         for idx, row in df_todo.iterrows():
             geom_id = row.get(id_col, idx)
 
-            if actual_moduli_col is not None and actual_moduli_col in row:
-                n_moduli = min(int(row[actual_moduli_col]), 20)
+            moduli_warning = None
+            moduli_value = row.get(actual_moduli_col) if actual_moduli_col else None
+            if moduli_value is None or pd.isna(moduli_value):
+                moduli_warning = "missing_moduli"
+                n_moduli = args.min_moduli
             else:
-                # For KS features which don't have h21, use random (or could derive from polytope)
-                n_moduli = np.random.default_rng().integers(3, 10)
+                try:
+                    moduli_value_int = int(moduli_value)
+                    n_moduli = map_h21_to_n_moduli(
+                        moduli_value_int,
+                        mode=args.moduli_map,
+                        min_moduli=args.min_moduli,
+                        max_moduli=args.max_moduli,
+                    )
+                except Exception:
+                    moduli_warning = "invalid_moduli"
+                    n_moduli = args.min_moduli
 
-            tasks.append((geom_id, n_moduli, dataset_name, RANDOM_SEED))
+            h21_raw = None
+            if h21_col is not None and h21_col in row:
+                h21_val = row.get(h21_col)
+                if h21_val is not None and not pd.isna(h21_val):
+                    try:
+                        h21_raw = int(h21_val)
+                    except Exception:
+                        h21_raw = None
+
+            tasks.append((geom_id, n_moduli, dataset_name, h21_raw, moduli_warning))
 
         chunk_size = checkpoint_interval
         num_chunks = (len(tasks) + chunk_size - 1) // chunk_size
@@ -779,7 +1222,12 @@ def main():
         ctx = get_context("spawn")
         chunk_idx = 0
         while chunk_idx < num_chunks:
-            with ctx.Pool(processes=n_processes, maxtasksperchild=args.maxtasksperchild) as pool:
+            with ctx.Pool(
+                processes=n_processes,
+                maxtasksperchild=args.maxtasksperchild,
+                initializer=init_worker,
+                initargs=(worker_config,),
+            ) as pool:
                 while chunk_idx < num_chunks:
                     if not wait_for_memory(
                         args.min_mem_gb,
@@ -856,7 +1304,6 @@ def main():
                 print(f"    Merged {i}/{len(partition_files)} partitions...")
                 merged = pd.concat(all_chunks, ignore_index=True)
                 all_chunks = [merged]
-                import gc
                 gc.collect()
 
         df_labels = pd.concat(all_chunks, ignore_index=True)
@@ -881,9 +1328,14 @@ def main():
     if 'minimization_success' in df_labels.columns:
         success_rate = df_labels['minimization_success'].mean() * 100
         print(f"\n  Minimization success rate: {success_rate:.1f}%")
-    if 'method' in df_labels.columns:
-        print("\n  Optimizer method distribution:")
-        print(df_labels[df_labels['minimization_success'] == True]['method'].value_counts())
+    method_col = None
+    if 'critical_point_method' in df_labels.columns:
+        method_col = 'critical_point_method'
+    elif 'method' in df_labels.columns:
+        method_col = 'method'
+    if method_col is not None:
+        print("\n  Critical point method distribution:")
+        print(df_labels[df_labels['minimization_success'] == True][method_col].value_counts())
     print()
     print("Next steps:")
     print("  1. Run validation: python scripts/32_validate_labels.py")

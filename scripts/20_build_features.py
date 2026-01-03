@@ -183,6 +183,39 @@ def main():
     if ks_file.exists():
         print(f"Processing {ks_file.name}...")
         df_ks = pd.read_parquet(ks_file)
+
+        # Ensure Hodge numbers are present (fallback to ks_hodge_numbers.parquet if needed)
+        needs_hodge = ('h11' not in df_ks.columns) or ('h21' not in df_ks.columns)
+        if needs_hodge:
+            hodge_file = INPUT_DIR / "ks_hodge_numbers.parquet"
+            if hodge_file.exists():
+                df_hodge = pd.read_parquet(hodge_file)
+                if 'polytope_id' in df_ks.columns and 'id' in df_hodge.columns:
+                    df_ks = df_ks.merge(
+                        df_hodge[['id', 'h11', 'h21']],
+                        left_on='polytope_id',
+                        right_on='id',
+                        how='left',
+                        suffixes=('', '_hodge')
+                    )
+                    for col in ['h11', 'h21']:
+                        if col in df_ks.columns and f"{col}_hodge" in df_ks.columns:
+                            df_ks[col] = df_ks[col].fillna(df_ks[f"{col}_hodge"])
+                        elif f"{col}_hodge" in df_ks.columns:
+                            df_ks[col] = df_ks[f"{col}_hodge"]
+                    df_ks = df_ks.drop(columns=[c for c in ['id', 'h11_hodge', 'h21_hodge'] if c in df_ks.columns])
+                else:
+                    # Fallback: align by row index if no key is available
+                    limit = min(len(df_ks), len(df_hodge))
+                    if 'h11' not in df_ks.columns:
+                        df_ks['h11'] = np.nan
+                    if 'h21' not in df_ks.columns:
+                        df_ks['h21'] = np.nan
+                    df_ks.loc[:limit - 1, 'h11'] = df_hodge.loc[:limit - 1, 'h11'].values
+                    df_ks.loc[:limit - 1, 'h21'] = df_hodge.loc[:limit - 1, 'h21'].values
+                print("  ✓ Filled missing KS Hodge numbers from ks_hodge_numbers.parquet")
+            else:
+                print("  ⚠ ks_hodge_numbers.parquet not found; KS h11/h21 may be missing")
         df_ks_features = build_ks_features(df_ks)
 
         output_file = OUTPUT_DIR / "ks_features.parquet"

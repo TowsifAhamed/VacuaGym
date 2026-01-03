@@ -142,7 +142,8 @@ def test_stability_analysis():
     )
 
     if result.success:
-        analysis = analyze_critical_point(potential, result.x)
+        grad_norm = np.linalg.norm(potential.gradient(result.x))
+        analysis = analyze_critical_point(potential, result.x, grad_norm, hess_eps=1e-6)
 
         print(f"  Stability: {analysis['stability']}")
         print(f"  Negative eigenvalues: {analysis['num_negative_eigenvalues']}")
